@@ -7,16 +7,16 @@ const mockStream = {
     write: jest.fn()
 };
 
-jest.mock('../../../utils/child-process', () => ({
+jest.mock('../../../../utils/child-process', () => ({
     wrap: mockWrapChildProcess
 }));
-jest.mock('../../command', () => ({
+jest.mock('../../../command', () => ({
     deploy: mockDeploy,
     rollback: mockRollback
 }));
 
 const rollback = require('../rollback');
-const { CanNotRollback } = require('../../../common/errors');
+const { CanNotRollback } = require('../../../../common/errors');
 
 describe('rollback', () => {
     it('should rollback service', () => {
@@ -30,13 +30,11 @@ describe('rollback', () => {
             Serverless: Files:
             Serverless: - compiled-cloudformation-template.json
         `;
-        const mockPipe = jest.fn();
         mockRollback.mockImplementation((path, version) => {
             if (version) {
                 return Promise.resolve(version);
-            } else {
-                return Promise.resolve(log);
             }
+            return Promise.resolve(log);
         });
 
         return expect(

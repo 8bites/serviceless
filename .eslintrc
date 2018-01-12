@@ -1,0 +1,12 @@
+{
+    "parserOptions": { "ecmaVersion": 6 },
+    "extends": [
+        "recommended/node",
+    ],
+    "rules": {
+        "import/no-commonjs": "off"
+    },
+    "env": {
+        jest: true
+    }
+}

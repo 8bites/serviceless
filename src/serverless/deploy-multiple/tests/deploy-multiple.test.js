@@ -25,7 +25,7 @@ describe('serverless deploy multiple', () => {
         });
 
         it('should deploy list of services', () => {
-            mockDeployOne.mockImplementation(({ path }) =>
+            mockDeployOne.mockImplementation(({ path }) => () =>
                 Promise.resolve({ stdout: path })
             );
 
@@ -33,17 +33,20 @@ describe('serverless deploy multiple', () => {
             expect.assertions(services.length);
             return deployMultiple(services, '', {}, mockStream).then(() => {
                 services.forEach(service => {
-                    expect(mockDeployOne).toBeCalledWith({
-                        path: service,
-                        flags: '',
-                        logStream: mockStream
-                    });
+                    expect(mockDeployOne).toBeCalledWith(
+                        expect.objectContaining({
+                            path: service,
+                            flags: '',
+                            logStream: mockStream,
+                            color: expect.any(String)
+                        })
+                    );
                 });
             });
         });
 
         it('with verbose flag', () => {
-            mockDeployOne.mockImplementation(({ path }) =>
+            mockDeployOne.mockImplementation(({ path }) => () =>
                 Promise.resolve({ stdout: `Serverless: ${path}` })
             );
 
@@ -52,12 +55,15 @@ describe('serverless deploy multiple', () => {
             expect.assertions(services.length);
             return deployMultiple(services, '', config, mockStream).then(() => {
                 services.forEach(service => {
-                    expect(mockDeployOne).toBeCalledWith({
-                        path: service,
-                        flags: '',
-                        logStream: mockStream,
-                        stdout: expect.any(Writable)
-                    });
+                    expect(mockDeployOne).toBeCalledWith(
+                        expect.objectContaining({
+                            path: service,
+                            flags: '',
+                            logStream: mockStream,
+                            color: expect.any(String),
+                            config
+                        })
+                    );
                 });
             });
         });
@@ -66,9 +72,7 @@ describe('serverless deploy multiple', () => {
             expect.assertions(1);
 
             const error = new Error('fail');
-            mockDeployOne.mockImplementation(({ path }) =>
-                Promise.reject(error)
-            );
+            mockDeployOne.mockImplementation(() => () => Promise.reject(error));
 
             return deployMultiple(['foo', 'bar', 'baz'], '', {}).catch(err => {
                 expect(err).toBeInstanceOf(Error);
@@ -86,7 +90,7 @@ describe('serverless deploy multiple', () => {
         });
 
         it('should deploy list of services', () => {
-            mockDeployOne.mockImplementation(({ path }) =>
+            mockDeployOne.mockImplementation(({ path }) => () =>
                 Promise.resolve({ stdout: path })
             );
 
@@ -95,17 +99,20 @@ describe('serverless deploy multiple', () => {
             expect.assertions(services.length);
             return deployMultiple(services, '', config, mockStream).then(() => {
                 services.forEach(service => {
-                    expect(mockDeployOne).toBeCalledWith({
-                        path: service,
-                        flags: '',
-                        logStream: mockStream
-                    });
+                    expect(mockDeployOne).toBeCalledWith(
+                        expect.objectContaining({
+                            path: service,
+                            flags: '',
+                            logStream: mockStream,
+                            color: expect.any(String)
+                        })
+                    );
                 });
             });
         });
 
         it('with verbose flag', () => {
-            mockDeployOne.mockImplementation(({ path }) =>
+            mockDeployOne.mockImplementation(({ path }) => () =>
                 Promise.resolve({ stdout: `Serverless: ${path}` })
             );
 
@@ -114,12 +121,15 @@ describe('serverless deploy multiple', () => {
             expect.assertions(services.length);
             return deployMultiple(services, '', config, mockStream).then(() => {
                 services.forEach(service => {
-                    expect(mockDeployOne).toBeCalledWith({
-                        path: service,
-                        flags: '',
-                        logStream: mockStream,
-                        stdout: expect.any(Writable)
-                    });
+                    expect(mockDeployOne).toBeCalledWith(
+                        expect.objectContaining({
+                            path: service,
+                            flags: '',
+                            logStream: mockStream,
+                            config,
+                            color: expect.any(String)
+                        })
+                    );
                 });
             });
         });
@@ -129,12 +139,11 @@ describe('serverless deploy multiple', () => {
 
             const error = new Error('fail');
             const config = { runInBand: true, exitOnFailure: true };
-            mockDeployOne.mockImplementation(({ path }) => {
+            mockDeployOne.mockImplementation(({ path }) => () => {
                 if (path === 'bar') {
                     return Promise.reject(error);
-                } else {
-                    return Promise.resolve(`Serverless: ${path}`);
                 }
+                return Promise.resolve(`Serverless: ${path}`);
             });
 
             return deployMultiple(['foo', 'bar', 'baz'], '', config).catch(
@@ -148,7 +157,7 @@ describe('serverless deploy multiple', () => {
     describe('deploy with rollback', () => {
         it('should rollback deployed services on failure', () => {
             const error = new Error('failed');
-            mockDeployOne.mockImplementation(({ path }) => {
+            mockDeployOne.mockImplementation(({ path }) => ctx => {
                 if (path === 'bar') {
                     return Promise.reject(error);
                 } else if (path === 'foo') {
@@ -156,13 +165,13 @@ describe('serverless deploy multiple', () => {
                         stdout:
                             'Serverless: Service files not changed. Skipping deployment...'
                     });
-                } else {
-                    return Promise.resolve({
-                        stdout: 'Serverless: Stack update finished...'
-                    });
                 }
+                ctx.deployedPaths = [path];
+                return Promise.resolve({
+                    stdout: 'Serverless: Stack update finished...'
+                });
             });
-            mockRollback.mockImplementation(() => Promise.resolve());
+            mockRollback.mockImplementation(() => () => Promise.resolve());
 
             const config = { rollbackOnFailure: true };
             const services = ['foo', 'bar', 'baz'];
@@ -174,16 +183,20 @@ describe('serverless deploy multiple', () => {
                     expect(err.errors[0]).toBe(error);
 
                     services.forEach(service => {
-                        expect(mockDeployOne).toBeCalledWith({
-                            path: service,
-                            flags: '',
-                            logStream: mockStream
-                        });
+                        expect(mockDeployOne).toBeCalledWith(
+                            expect.objectContaining({
+                                path: service,
+                                flags: '',
+                                logStream: mockStream,
+                                color: expect.any(String)
+                            })
+                        );
                     });
 
                     expect(mockRollback).toBeCalledWith({
                         path: 'baz',
-                        logStream: mockStream
+                        logStream: mockStream,
+                        color: expect.any(String)
                     });
                 }
             );
@@ -192,7 +205,7 @@ describe('serverless deploy multiple', () => {
         it('should catch rollback error', () => {
             const error = new Error('failed');
             const rollbackError = new Error('rollback failed');
-            mockDeployOne.mockImplementation(({ path }) => {
+            mockDeployOne.mockImplementation(({ path }) => ctx => {
                 if (path === 'bar') {
                     return Promise.reject(error);
                 } else if (path === 'foo') {
@@ -200,13 +213,13 @@ describe('serverless deploy multiple', () => {
                         stdout:
                             'Serverless: Service files not changed. Skipping deployment...'
                     });
-                } else {
-                    return Promise.resolve({
-                        stdout: 'Serverless: Stack update finished...'
-                    });
                 }
+                ctx.deployedPaths = [path];
+                return Promise.resolve({
+                    stdout: 'Serverless: Stack update finished...'
+                });
             });
-            mockRollback.mockImplementation(() =>
+            mockRollback.mockImplementation(() => () =>
                 Promise.reject(rollbackError)
             );
 
@@ -229,14 +242,15 @@ describe('serverless deploy multiple', () => {
                             path: service,
                             flags: '',
                             logStream: mockStream,
-                            stdout: expect.any(Writable)
+                            config,
+                            color: expect.any(String)
                         });
                     });
 
                     expect(mockRollback).toBeCalledWith({
                         path: 'baz',
                         logStream: mockStream,
-                        stdout: expect.any(Writable)
+                        color: expect.any(String)
                     });
                 }
             );
@@ -244,15 +258,15 @@ describe('serverless deploy multiple', () => {
 
         it('should reject if no paths was deployed', () => {
             const error = new Error('failed');
-            mockDeployOne.mockImplementation(({ path }) => {
+            mockDeployOne.mockImplementation(({ path }) => ctx => {
                 if (path === 'bar') {
                     return Promise.reject(error);
-                } else {
-                    return Promise.resolve({
-                        stdout:
-                            'Serverless: Service files not changed. Skipping deployment...'
-                    });
                 }
+                ctx.deployedPaths = [];
+                return Promise.resolve({
+                    stdout:
+                        'Serverless: Service files not changed. Skipping deployment...'
+                });
             });
             mockRollback.mockImplementation(() => Promise.resolve());
 
@@ -269,7 +283,9 @@ describe('serverless deploy multiple', () => {
                         expect(mockDeployOne).toBeCalledWith({
                             path: service,
                             flags: '',
-                            logStream: mockStream
+                            logStream: mockStream,
+                            config,
+                            color: expect.any(String)
                         });
                     });
 

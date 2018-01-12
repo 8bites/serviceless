@@ -34,13 +34,13 @@ describe('serverless commands', () => {
             mockExeca.mockImplementation(command => {
                 if (command === 'which') {
                     return Promise.resolve('sls');
-                } else {
-                    const promise = Promise.resolve('log');
-                    promise.stdout = {
-                        pipe: mockPipe
-                    };
-                    return promise;
                 }
+
+                const promise = Promise.resolve('log');
+                promise.stdout = {
+                    pipe: mockPipe
+                };
+                return promise;
             });
         });
 
@@ -48,16 +48,15 @@ describe('serverless commands', () => {
             mockExeca.mockClear();
         });
 
-        it('should deploy', () => {
-            return expect(Sls.deploy('foo', 'flags'))
+        it('should deploy', () =>
+            expect(Sls.deploy('foo', 'flags'))
                 .resolves.toBe('log')
                 .then(() => {
                     expect(mockExeca).toBeCalledWith('which sls');
                     expect(mockExeca).toBeCalledWith(
                         'cd /foo && sls deploy flags'
                     );
-                });
-        });
+                }));
 
         it('should deploy with stdout', () => {
             const mockStdout = jest.fn();
@@ -72,25 +71,23 @@ describe('serverless commands', () => {
                 });
         });
 
-        it('should rollback', () => {
-            return expect(Sls.rollback('path'))
+        it('should rollback', () =>
+            expect(Sls.rollback('path'))
                 .resolves.toBe('log')
                 .then(() => {
                     expect(mockExeca).toBeCalledWith(
                         'cd /path && sls rollback '
                     );
-                });
-        });
+                }));
 
-        it('should rollback with version', () => {
-            return expect(Sls.rollback('path', 'blah'))
+        it('should rollback with version', () =>
+            expect(Sls.rollback('path', 'blah'))
                 .resolves.toBe('log')
                 .then(() => {
                     expect(mockExeca).toBeCalledWith(
                         'cd /path && sls rollback -t blah'
                     );
-                });
-        });
+                }));
 
         it('should rollback with version and stdout', () => {
             const mockStdout = jest.fn();

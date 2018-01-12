@@ -7,23 +7,20 @@ const mockStream = {
     write: jest.fn()
 };
 
-jest.mock('../../../utils/child-process', () => ({
+jest.mock('../../../../utils/child-process', () => ({
     wrap: mockWrapChildProcess
 }));
-jest.mock('../../command', () => ({
+jest.mock('../../../command', () => ({
     deploy: mockDeploy,
     rollback: mockRollback
 }));
 
-const deployOne = require('../deploy-one');
-const { ServerlessCommandError } = require('../../../common/errors');
+const deployOne = require('../deploy');
+const { ServerlessCommandError } = require('../../../../common/errors');
 
 describe('deployOne', () => {
     it('should deploy service', () => {
-        const mockPipe = jest.fn();
-        mockDeploy.mockImplementation(() => {
-            return Promise.resolve('log');
-        });
+        mockDeploy.mockImplementation(() => Promise.resolve('log'));
 
         const config = {};
         return expect(

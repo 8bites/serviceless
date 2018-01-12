@@ -11,7 +11,8 @@
     "scripts": {
         "test": "jest",
         "test:coverage": "jest --coverage",
-        "codecov": "codecov"
+        "codecov": "codecov",
+        "eslint": "eslint ."
     },
     "repository": {
         "type": "git",
@@ -36,6 +37,8 @@
     "homepage": "https://github.com/8bites/serviceless#readme",
     "devDependencies": {
         "codecov": "^3.0.0",
+        "eslint": "^4.15.0",
+        "eslint-config-recommended": "^2.0.0",
         "jest": "^22.0.3"
     },
     "dependencies": {
@@ -50,6 +53,8 @@
         "log-update": "^2.3.0"
     },
     "jest": {
-        "collectCoverageFrom": ["src/**.js"]
+        "collectCoverageFrom": [
+            "src/**.js"
+        ]
     }
 }
