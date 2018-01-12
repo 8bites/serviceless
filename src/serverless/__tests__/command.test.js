@@ -17,8 +17,8 @@ const { ServerlessExecutableNotFoundError } = require('../../common/errors');
 describe('serverless commands', () => {
     it('checks sls exists', () => {
         mockExeca.mockImplementation(command => {
-            if (command === 'which') {
-                return Promise.resolve('');
+            if (command === 'which sls') {
+                return Promise.resolve('sls not found');
             }
         });
 
@@ -28,12 +28,18 @@ describe('serverless commands', () => {
     });
 
     describe('commands', () => {
+        const mockPipe = jest.fn();
         beforeEach(() => {
+            mockPipe.mockClear();
             mockExeca.mockImplementation(command => {
                 if (command === 'which') {
                     return Promise.resolve('sls');
                 } else {
-                    return Promise.resolve('log');
+                    const promise = Promise.resolve('log');
+                    promise.stdout = {
+                        pipe: mockPipe
+                    };
+                    return promise;
                 }
             });
         });
@@ -46,10 +52,23 @@ describe('serverless commands', () => {
             return expect(Sls.deploy('foo', 'flags'))
                 .resolves.toBe('log')
                 .then(() => {
-                    expect(mockExeca).toBeCalledWith('which', ['sls']);
+                    expect(mockExeca).toBeCalledWith('which sls');
                     expect(mockExeca).toBeCalledWith(
                         'cd /foo && sls deploy flags'
                     );
+                });
+        });
+
+        it('should deploy with stdout', () => {
+            const mockStdout = jest.fn();
+            return expect(Sls.deploy('foo', 'flags', mockStdout))
+                .resolves.toBe('log')
+                .then(() => {
+                    expect(mockExeca).toBeCalledWith('which sls');
+                    expect(mockExeca).toBeCalledWith(
+                        'cd /foo && sls deploy flags'
+                    );
+                    expect(mockPipe).toBeCalledWith(mockStdout);
                 });
         });
 
@@ -70,6 +89,18 @@ describe('serverless commands', () => {
                     expect(mockExeca).toBeCalledWith(
                         'cd /path && sls rollback -t blah'
                     );
+                });
+        });
+
+        it('should rollback with version and stdout', () => {
+            const mockStdout = jest.fn();
+            return expect(Sls.rollback('path', 'blah', mockStdout))
+                .resolves.toBe('log')
+                .then(() => {
+                    expect(mockExeca).toBeCalledWith(
+                        'cd /path && sls rollback -t blah'
+                    );
+                    expect(mockPipe).toBeCalledWith(mockStdout);
                 });
         });
     });

@@ -26,7 +26,7 @@ describe('serverless deploy multiple', () => {
 
         it('should deploy list of services', () => {
             mockDeployOne.mockImplementation(({ path }) =>
-                Promise.resolve(path)
+                Promise.resolve({ stdout: path })
             );
 
             const services = ['foo', 'bar', 'baz'];
@@ -44,7 +44,7 @@ describe('serverless deploy multiple', () => {
 
         it('with verbose flag', () => {
             mockDeployOne.mockImplementation(({ path }) =>
-                Promise.resolve(`Serverless: ${path}`)
+                Promise.resolve({ stdout: `Serverless: ${path}` })
             );
 
             const services = ['foo', 'bar', 'baz'];
@@ -87,7 +87,7 @@ describe('serverless deploy multiple', () => {
 
         it('should deploy list of services', () => {
             mockDeployOne.mockImplementation(({ path }) =>
-                Promise.resolve(path)
+                Promise.resolve({ stdout: path })
             );
 
             const services = ['foo', 'bar', 'baz'];
@@ -106,7 +106,7 @@ describe('serverless deploy multiple', () => {
 
         it('with verbose flag', () => {
             mockDeployOne.mockImplementation(({ path }) =>
-                Promise.resolve(`Serverless: ${path}`)
+                Promise.resolve({ stdout: `Serverless: ${path}` })
             );
 
             const services = ['foo', 'bar', 'baz'];
@@ -152,13 +152,14 @@ describe('serverless deploy multiple', () => {
                 if (path === 'bar') {
                     return Promise.reject(error);
                 } else if (path === 'foo') {
-                    return Promise.resolve(
-                        'Serverless: Service files not changed. Skipping deployment...'
-                    );
+                    return Promise.resolve({
+                        stdout:
+                            'Serverless: Service files not changed. Skipping deployment...'
+                    });
                 } else {
-                    return Promise.resolve(
-                        'Serverless: Stack update finished...'
-                    );
+                    return Promise.resolve({
+                        stdout: 'Serverless: Stack update finished...'
+                    });
                 }
             });
             mockRollback.mockImplementation(() => Promise.resolve());
@@ -195,13 +196,14 @@ describe('serverless deploy multiple', () => {
                 if (path === 'bar') {
                     return Promise.reject(error);
                 } else if (path === 'foo') {
-                    return Promise.resolve(
-                        'Serverless: Service files not changed. Skipping deployment...'
-                    );
+                    return Promise.resolve({
+                        stdout:
+                            'Serverless: Service files not changed. Skipping deployment...'
+                    });
                 } else {
-                    return Promise.resolve(
-                        'Serverless: Stack update finished...'
-                    );
+                    return Promise.resolve({
+                        stdout: 'Serverless: Stack update finished...'
+                    });
                 }
             });
             mockRollback.mockImplementation(() =>
@@ -246,9 +248,10 @@ describe('serverless deploy multiple', () => {
                 if (path === 'bar') {
                     return Promise.reject(error);
                 } else {
-                    return Promise.resolve(
-                        'Serverless: Service files not changed. Skipping deployment...'
-                    );
+                    return Promise.resolve({
+                        stdout:
+                            'Serverless: Service files not changed. Skipping deployment...'
+                    });
                 }
             });
             mockRollback.mockImplementation(() => Promise.resolve());

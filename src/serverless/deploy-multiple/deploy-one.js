@@ -4,11 +4,7 @@ const Sls = require('../command');
 const { ServerlessCommandError } = require('../../common/errors');
 
 const deployOne = ({ path, flags, logStream, stdout }) => {
-    const deploy = Sls.deploy(path, flags);
-
-    if (stdout) {
-        deploy.stdout.pipe(stdout);
-    }
+    const deploy = Sls.deploy(path, flags, stdout);
 
     return deploy
         .then(log => {

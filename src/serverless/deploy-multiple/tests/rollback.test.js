@@ -32,19 +32,11 @@ describe('rollback', () => {
         `;
         const mockPipe = jest.fn();
         mockRollback.mockImplementation((path, version) => {
-            let promise;
-
             if (version) {
-                promise = Promise.resolve(version);
+                return Promise.resolve(version);
             } else {
-                promise = Promise.resolve(log);
+                return Promise.resolve(log);
             }
-
-            promise.stdout = {
-                pipe: mockPipe
-            };
-
-            return promise;
         });
 
         return expect(
@@ -53,11 +45,7 @@ describe('rollback', () => {
                 logStream: mockStream,
                 stdout: mockStream
             })
-        )
-            .resolves.toBe('1514886606692')
-            .then(() => {
-                expect(mockPipe).toBeCalledWith(mockStream);
-            });
+        ).resolves.toBe('1514886606692');
     });
 
     it('should reject if there is no previous versions', () => {

@@ -7,10 +7,6 @@ const versionRegExp = /Serverless: Timestamp: (\d+)/;
 const rollback = ({ path, logStream, stdout }) => {
     const rollback = Sls.rollback(path);
 
-    if (stdout) {
-        rollback.stdout.pipe(stdout);
-    }
-
     return rollback
         .then(log => {
             const match = log.match(versionRegExp);
@@ -22,7 +18,7 @@ const rollback = ({ path, logStream, stdout }) => {
             }
         })
         .then(version => {
-            return Sls.rollback(path, version);
+            return Sls.rollback(path, version, stdout);
         });
 };
 

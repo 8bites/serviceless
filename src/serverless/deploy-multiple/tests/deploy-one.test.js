@@ -22,11 +22,7 @@ describe('deployOne', () => {
     it('should deploy service', () => {
         const mockPipe = jest.fn();
         mockDeploy.mockImplementation(() => {
-            const promise = Promise.resolve('log');
-            promise.stdout = {
-                pipe: mockPipe
-            };
-            return promise;
+            return Promise.resolve('log');
         });
 
         const config = {};
@@ -41,9 +37,8 @@ describe('deployOne', () => {
         )
             .resolves.toBe('log')
             .then(() => {
-                expect(mockDeploy).toBeCalledWith('path', 'flags');
+                expect(mockDeploy).toBeCalledWith('path', 'flags', mockStream);
                 expect(mockStream.write).toBeCalledWith('\n[path]:\nlog\n');
-                expect(mockPipe).toBeCalledWith(mockStream);
             });
     });
 

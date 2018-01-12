@@ -4,16 +4,16 @@ const { ServerlessCommandError } = require('../common/errors');
 
 let childPromises = [];
 
-const wrap = (childPromise, params = {}) => {
+const wrap = childPromise => {
     childPromises.push(childPromise);
 
-    return childPromise.then(result => {
+    childPromise.then(result => {
         childPromises = childPromises.filter(
             promise => promise !== childPromise
         );
-
-        return result;
     });
+
+    return childPromise;
 };
 
 const kill = () => {

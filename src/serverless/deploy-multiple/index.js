@@ -75,11 +75,11 @@ module.exports = (paths, flags, config, logStream) => {
 
                             return Promise.reject(err);
                         })
-                        .then(output => {
+                        .then(res => {
                             let isSkipped = false;
                             // check if service was deployed
                             if (
-                                output.indexOf(
+                                res.stdout.indexOf(
                                     'Serverless: Stack update finished...'
                                 ) > -1
                             ) {
@@ -89,10 +89,10 @@ module.exports = (paths, flags, config, logStream) => {
                                 task.skip();
                             }
 
-                            const infoIndex = output.lastIndexOf(
+                            const infoIndex = res.stdout.lastIndexOf(
                                 'Service Information'
                             );
-                            const info = output.substring(infoIndex);
+                            const info = res.stdout.substring(infoIndex);
                             ctx[path] = {
                                 info,
                                 isSkipped
