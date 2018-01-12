@@ -1,7 +1,8 @@
 'use strict';
 
 const mockWrapChildProcess = jest.fn(child => child);
-const mockSls = jest.fn();
+const mockDeploy = jest.fn();
+const mockRollback = jest.fn();
 const mockStream = {
     write: jest.fn()
 };
@@ -9,19 +10,24 @@ const mockStream = {
 jest.mock('../../../utils/child-process', () => ({
     wrap: mockWrapChildProcess
 }));
-jest.mock('../../command', () => mockSls);
+jest.mock('../../command', () => ({
+    deploy: mockDeploy,
+    rollback: mockRollback
+}));
 
 const deployOne = require('../deploy-one');
 const { ServerlessCommandError } = require('../../../common/errors');
 
 describe('deployOne', () => {
     it('should deploy service', () => {
-        mockSls.mockImplementation(child => child);
-
-        const mockDeploy = jest.fn(() => Promise.resolve('log'));
-        mockSls.mockImplementation(() => ({
-            deploy: mockDeploy
-        }));
+        const mockPipe = jest.fn();
+        mockDeploy.mockImplementation(() => {
+            const promise = Promise.resolve('log');
+            promise.stdout = {
+                pipe: mockPipe
+            };
+            return promise;
+        });
 
         const config = {};
         return expect(
@@ -29,22 +35,21 @@ describe('deployOne', () => {
                 path: 'path',
                 flags: 'flags',
                 config,
+                stdout: mockStream,
                 logStream: mockStream
             })
         )
             .resolves.toBe('log')
             .then(() => {
-                expect(mockSls).toBeCalledWith('path', 'flags');
+                expect(mockDeploy).toBeCalledWith('path', 'flags');
                 expect(mockStream.write).toBeCalledWith('\n[path]:\nlog\n');
+                expect(mockPipe).toBeCalledWith(mockStream);
             });
     });
 
     it('should catch regular error', () => {
         const error = new Error();
-        mockSls.mockImplementation(child => child);
-        mockSls.mockImplementation(() => ({
-            deploy: () => Promise.reject(error)
-        }));
+        mockDeploy.mockImplementation(() => Promise.reject(error));
 
         const config = {};
         return expect(
@@ -58,11 +63,8 @@ describe('deployOne', () => {
     });
 
     it('should catch ServerlessCommandError', () => {
-        const error = new ServerlessCommandError('log', 'errorLog');
-        mockSls.mockImplementation(child => child);
-        mockSls.mockImplementation(() => ({
-            deploy: () => Promise.reject(error)
-        }));
+        const error = new ServerlessCommandError('log');
+        mockDeploy.mockImplementation(() => Promise.reject(error));
 
         const config = {};
         return expect(

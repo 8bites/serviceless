@@ -1,68 +1,76 @@
 'use strict';
 
 // mocks
-const mockWhich = jest.fn();
-const mockCd = jest.fn();
-const mockExec = jest.fn();
+const mockExeca = jest.fn();
 const mockResolve = jest.fn(path => '/' + path);
 
-jest.mock('shelljs', () => ({
-    which: mockWhich,
-    cd: mockCd,
-    exec: mockExec
+jest.mock('execa', () => ({
+    shell: mockExeca
 }));
 jest.mock('path', () => ({
     resolve: mockResolve
 }));
 
 const Sls = require('../command');
+const { ServerlessExecutableNotFoundError } = require('../../common/errors');
 
 describe('serverless commands', () => {
-    const flags = 'flags';
-    const sls = new Sls('foo', flags);
+    it('checks sls exists', () => {
+        mockExeca.mockImplementation(command => {
+            if (command === 'which') {
+                return Promise.resolve('');
+            }
+        });
 
-    it('should resolve path', () => {
-        expect(sls.path).toBe('foo');
-    });
-
-    it('should throw an error on missing sls', () => {
-        expect(() => sls.__getSls()).toThrow();
+        return expect(Sls.deploy('path', 'flags')).rejects.toBeInstanceOf(
+            ServerlessExecutableNotFoundError
+        );
     });
 
     describe('commands', () => {
         beforeEach(() => {
-            mockWhich.mockReturnValue({ exec: mockExec });
+            mockExeca.mockImplementation(command => {
+                if (command === 'which') {
+                    return Promise.resolve('sls');
+                } else {
+                    return Promise.resolve('log');
+                }
+            });
         });
 
-        it('should exec command', () => {
-            sls.exec('foo');
-
-            expect(mockExec).toBeCalledWith('cd foo && sls foo', {
-                async: true,
-                silent: true
-            });
+        afterEach(() => {
+            mockExeca.mockClear();
         });
 
         it('should deploy', () => {
-            sls.deploy();
-            expect(mockExec).toBeCalledWith('cd foo && sls deploy flags', {
-                async: true,
-                silent: true
-            });
+            return expect(Sls.deploy('foo', 'flags'))
+                .resolves.toBe('log')
+                .then(() => {
+                    expect(mockExeca).toBeCalledWith('which', ['sls']);
+                    expect(mockExeca).toBeCalledWith(
+                        'cd /foo && sls deploy flags'
+                    );
+                });
         });
 
         it('should rollback', () => {
-            sls.rollback();
+            return expect(Sls.rollback('path'))
+                .resolves.toBe('log')
+                .then(() => {
+                    expect(mockExeca).toBeCalledWith(
+                        'cd /path && sls rollback '
+                    );
+                });
+        });
 
-            expect(mockExec).toBeCalledWith('cd foo && sls rollback ', {
-                async: true,
-                silent: true
-            });
-            sls.rollback('blah');
-            expect(mockExec).toBeCalledWith('cd foo && sls rollback -t blah', {
-                async: true,
-                silent: true
-            });
+        it('should rollback with version', () => {
+            return expect(Sls.rollback('path', 'blah'))
+                .resolves.toBe('log')
+                .then(() => {
+                    expect(mockExeca).toBeCalledWith(
+                        'cd /path && sls rollback -t blah'
+                    );
+                });
         });
     });
 });

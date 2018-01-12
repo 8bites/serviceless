@@ -2,13 +2,16 @@
 
 const Sls = require('../command');
 const { CanNotRollback } = require('../../common/errors');
-const { wrap } = require('../../utils/child-process');
 
 const versionRegExp = /Serverless: Timestamp: (\d+)/;
 const rollback = ({ path, logStream, stdout }) => {
-    const sls = new Sls(path, '');
+    const rollback = Sls.rollback(path);
 
-    return wrap(sls.rollback(), { stdout })
+    if (stdout) {
+        rollback.stdout.pipe(stdout);
+    }
+
+    return rollback
         .then(log => {
             const match = log.match(versionRegExp);
 
@@ -19,7 +22,7 @@ const rollback = ({ path, logStream, stdout }) => {
             }
         })
         .then(version => {
-            return wrap(sls.rollback(version));
+            return Sls.rollback(path, version);
         });
 };
 

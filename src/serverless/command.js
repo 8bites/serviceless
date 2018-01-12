@@ -1,41 +1,34 @@
 'use strict';
 
-const sh = require('shelljs');
-const Errors = require('../common/errors');
+const execa = require('execa');
+const { ServerlessExecutableNotFoundError } = require('../common/errors');
+const { wrap } = require('../utils/child-process');
+const Path = require('path');
 
-class ServerlessCommand {
-    constructor(path, flags) {
-        this.path = path;
-        this.flags = flags;
+exports = {
+    checkSls() {
+        return execa.shell('which', ['sls']).then(result => {
+            if (!result) {
+                return Promise.reject(new ServerlessExecutableNotFoundError());
+            }
+        });
+    },
+    deploy(path, flags) {
+        return this.checkSls().then(() =>
+            wrap(execa.shell(`cd ${Path.resolve(path)} && sls deploy ${flags}`))
+        );
+    },
+    rollback(path, version) {
+        return this.checkSls().then(() =>
+            wrap(
+                execa.shell(
+                    `cd ${Path.resolve(path)} && sls rollback ${
+                        version ? `-t ${version}` : ''
+                    }`
+                )
+            )
+        );
     }
+};
 
-    __getSls() {
-        const sls = sh.which('sls');
-
-        if (!sls) {
-            throw new Errors.ServerlessExecutableNotFoundError();
-        }
-
-        return {
-            exec: (command, ...args) =>
-                sh.exec(`cd ${this.path} && sls ${command}`, {
-                    async: true,
-                    silent: true
-                })
-        };
-    }
-
-    exec(command) {
-        return this.__getSls().exec(`${command}`);
-    }
-
-    deploy() {
-        return this.exec(`deploy ${this.flags}`);
-    }
-
-    rollback(version) {
-        return this.exec(`rollback ${version ? `-t ${version}` : ''}`);
-    }
-}
-
-module.exports = ServerlessCommand;
+module.exports = exports;
