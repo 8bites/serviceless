@@ -3,10 +3,11 @@
 const fs = require('fs');
 const Path = require('path');
 const Deploy = require('./deploy');
+const logger = require('../utils/logger');
 
 module.exports = {
-    deploy: (service, path, argv, options) => {
-        return new Promise((resolve, reject) => {
+    deploy: (service, path, argv, options) =>
+        new Promise((resolve, reject) => {
             let failed = false;
             const logStream = fs.createWriteStream(
                 Path.resolve('./serviceless.log')
@@ -25,6 +26,7 @@ module.exports = {
                 deploy
                     .exec(service)
                     .catch(err => {
+                        logger.error(err);
                         failed = true;
                         logStream.end();
                     })
@@ -32,6 +34,5 @@ module.exports = {
                         logStream.end();
                     });
             });
-        });
-    }
+        })
 };

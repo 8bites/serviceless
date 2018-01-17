@@ -35,7 +35,7 @@ const getStatus = deploySummary => {
 };
 
 const showSummary = (paths, ctx) => {
-    let output = '';
+    let output = '\n';
     paths.forEach((path, index) => {
         if (ctx[path]) {
             const color = getColor(index);
@@ -43,7 +43,7 @@ const showSummary = (paths, ctx) => {
 
             output += `${chalk[color](`[${path}]`)} ${getStatus(
                 ctx[path]
-            )}:\n${info}`;
+            )}:\n${info}\n`;
         }
     });
     logUpdate(output);
@@ -103,7 +103,7 @@ module.exports = (paths, flags, config, logStream) => {
             return Promise.reject(err);
         })
         .then(ctx => {
-            logger.log('\nDeployment completed successfuly\n');
+            logger.log('Deployment completed successfuly');
             showSummary(paths, ctx);
         });
 };

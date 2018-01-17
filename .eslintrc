@@ -4,7 +4,8 @@
         "recommended/node",
     ],
     "rules": {
-        "import/no-commonjs": "off"
+        "import/no-commonjs": "off",
+        "import/no-nodejs-modules": "off"
     },
     "env": {
         jest: true
