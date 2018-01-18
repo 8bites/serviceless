@@ -5,7 +5,7 @@ const mockCreateStatusStream = jest.fn();
 jest.mock('../deploy', () => mockDeploy);
 jest.mock('../../status-stream', () => mockCreateStatusStream);
 
-const createTask = require('../index');
+const createTask = require('../task');
 
 describe('createDeployTask', () => {
     describe('with success deploy', () => {
@@ -17,6 +17,8 @@ describe('createDeployTask', () => {
                 })
             );
 
+            const globalCtx = {};
+
             const params = {
                 path: 'path',
                 flags: 'flags',
@@ -25,14 +27,22 @@ describe('createDeployTask', () => {
                 color: 'blue'
             };
             const ctx = {};
-            const task = createTask(params);
+            const task = createTask(globalCtx, params);
+
+            const expectedResult = {
+                isSkipped: false,
+                stdout:
+                    'Serverless: Stack update finished... foo Service Information bar',
+                info: 'Service Information bar',
+                isSucceeded: true,
+                isFailed: false
+            };
 
             return expect(task(ctx))
-                .resolves.toBeUndefined()
+                .resolves.toEqual(expectedResult)
                 .then(() => {
-                    expect(ctx.path.isSkipped).toBe(false);
-                    expect(ctx.path.info).toBe('Service Information bar');
-                    expect(ctx.deployedPaths).toEqual(['path']);
+                    expect(globalCtx.path).toEqual(expectedResult);
+                    expect(globalCtx.deployedPaths).toEqual(['path']);
                 });
         });
 
@@ -44,6 +54,7 @@ describe('createDeployTask', () => {
                 })
             );
 
+            const globalCtx = { deployedPaths: ['foo'] };
             const params = {
                 path: 'path',
                 flags: 'flags',
@@ -51,14 +62,25 @@ describe('createDeployTask', () => {
                 logStream: jest.fn(),
                 color: 'blue'
             };
-            const ctx = { deployedPaths: ['foo'] };
-            const task = createTask(params);
+            const task = createTask(globalCtx, params);
             const mockTask = {};
 
-            return expect(task(ctx, mockTask))
-                .resolves.toBeUndefined()
+            const expectedResult = {
+                isSkipped: false,
+                stdout:
+                    'Serverless: Stack update finished... foo Service Information bar',
+                info: 'Service Information bar',
+                isSucceeded: true,
+                isFailed: false
+            };
+
+            return expect(task({}, mockTask))
+                .resolves.toEqual(expectedResult)
                 .then(() => {
-                    expect(ctx.deployedPaths).toEqual(['foo', 'path']);
+                    expect(globalCtx).toEqual({
+                        deployedPaths: ['foo', 'path'],
+                        path: expectedResult
+                    });
                     expect(mockCreateStatusStream).toBeCalledWith(
                         'path',
                         'blue',
@@ -74,6 +96,7 @@ describe('createDeployTask', () => {
                 })
             );
 
+            const globalCtx = { deployedPaths: [] };
             const params = {
                 path: 'path',
                 flags: 'flags',
@@ -81,16 +104,22 @@ describe('createDeployTask', () => {
                 logStream: jest.fn(),
                 color: 'blue'
             };
-            const ctx = { deployedPaths: [] };
-            const task = createTask(params);
+            const task = createTask(globalCtx, params);
             const mockTask = { skip: jest.fn() };
 
-            return expect(task(ctx, mockTask))
-                .resolves.toBeUndefined()
+            const expectedResult = {
+                isSkipped: true,
+                isSucceeded: false,
+                isFailed: false,
+                info: 'Restored from cache',
+                stdout: 'Restored from cache'
+            };
+
+            return expect(task({}, mockTask))
+                .resolves.toEqual(expectedResult)
                 .then(() => {
-                    expect(ctx.path.isSkipped).toBe(true);
-                    expect(ctx.path.info).toBe('Restored from cache');
-                    expect(ctx.deployedPaths).toEqual([]);
+                    expect(globalCtx.path).toEqual(expectedResult);
+                    expect(globalCtx.deployedPaths).toEqual([]);
                 });
         });
     });
@@ -108,15 +137,18 @@ describe('createDeployTask', () => {
                 logStream: jest.fn(),
                 color: 'blue'
             };
-            const ctx = {};
-            const task = createTask(params);
+            const globalCtx = {};
+            const task = createTask(globalCtx, params);
 
-            return expect(task(ctx))
+            return expect(task({}))
                 .rejects.toBe(err)
                 .then(() => {
-                    expect(ctx.path).toEqual({
+                    expect(globalCtx.path).toEqual({
+                        stdout: err.log,
                         info: err.log,
-                        isFailed: true
+                        isFailed: true,
+                        isSucceeded: false,
+                        isSkipped: false
                     });
                 });
         });

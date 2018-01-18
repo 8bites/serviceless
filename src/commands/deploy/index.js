@@ -30,7 +30,9 @@ class DeployCommand {
             typeof paths === 'string' ? this._normalizePath(paths) : paths,
             this.argv,
             this.options,
-            this.logStream
+            this.logStream,
+            // empty hooks, replace when will be implemented
+            {}
         );
     }
 
@@ -71,7 +73,8 @@ class DeployCommand {
                     Object.keys(this.services),
                     this.argv,
                     this.options,
-                    this.logStream
+                    this.logStream,
+                    {}
                 );
             } else if (service) {
                 return this._findService(service).then(paths =>

@@ -1,42 +1,42 @@
 'use strict';
 
-const deploy = require('./deploy');
-const createStatusStream = require('../status-stream');
+const Listr = require('listr');
+const ListrVerboseRenderer = require('listr-verbose-renderer');
+const task = require('./task');
+const { wireHooks } = require('../utils');
 
-module.exports = ({ path, flags, config, logStream, color }) => (ctx, task) =>
-    deploy({
-        path,
-        flags,
-        logStream,
-        stdout: config.verbose && createStatusStream(path, color, task)
-    })
-        .catch(err => {
-            ctx[path] = {
-                info: err.log,
-                isFailed: true
-            };
+/*
+ * path [String]
+ * flags [String]
+ * config [Object]
+ * logStream [WriteStream]
+ * color [String]
+ * hooks [Object]
+ */
+module.exports = (params, hooks) => (globalCtx, task) => {
+    try {
+        const { config } = params;
 
-            return Promise.reject(err);
-        })
-        .then(res => {
-            let isSkipped = false;
-            // check if service was deployed
-            if (
-                res.stdout.indexOf('Serverless: Stack update finished...') > -1
-            ) {
-                if (!ctx.deployedPaths) {
-                    ctx.deployedPaths = [];
-                }
-                ctx.deployedPaths.push(path);
-            } else {
-                isSkipped = true;
-                task.skip();
+        const tasks = [
+            {
+                title: `sls deploy ${flags}`,
+                task: task(params)
             }
+        ];
 
-            const infoIndex = res.stdout.lastIndexOf('Service Information');
-            const info = res.stdout.substring(infoIndex);
-            ctx[path] = {
-                info,
-                isSkipped
-            };
-        });
+        wireHooks(
+            params,
+            globalCtx,
+            tasks,
+            hooks.beforeDeploy,
+            hooks.afterDeploy
+        );
+
+        return new Listr(tasks, {
+            renderer: config.verbose && ListrVerboseRenderer,
+            exitOnError: true
+        }).run();
+    } catch (err) {
+        return Promise.reject(err);
+    }
+};

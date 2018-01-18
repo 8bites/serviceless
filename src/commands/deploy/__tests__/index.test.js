@@ -35,7 +35,8 @@ describe('Deploy command', () => {
                     ['foo', 'bar'],
                     argv,
                     options,
-                    expect.any(Writable)
+                    expect.any(Writable),
+                    {}
                 );
             });
         });
@@ -64,7 +65,8 @@ describe('Deploy command', () => {
                     ['path/path'],
                     argv,
                     options,
-                    expect.any(Writable)
+                    expect.any(Writable),
+                    {}
                 );
             });
         });
@@ -82,7 +84,8 @@ describe('Deploy command', () => {
                     ['path/path'],
                     argv,
                     options,
-                    expect.any(Writable)
+                    expect.any(Writable),
+                    {}
                 );
             });
         });
@@ -100,7 +103,8 @@ describe('Deploy command', () => {
                     ['aaa', 'aab'],
                     argv,
                     options,
-                    expect.any(Writable)
+                    expect.any(Writable),
+                    {}
                 );
             });
         });
@@ -119,7 +123,8 @@ describe('Deploy command', () => {
                     ['.'],
                     argv,
                     options,
-                    expect.any(Writable)
+                    expect.any(Writable),
+                    {}
                 );
             });
         });
@@ -138,7 +143,8 @@ describe('Deploy command', () => {
                     ['aaa', 'aab', 'zzz'],
                     argv,
                     options,
-                    expect.any(Writable)
+                    expect.any(Writable),
+                    {}
                 );
             });
         });

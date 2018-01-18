@@ -7,6 +7,7 @@ const ListrVerboseRenderer = require('listr-verbose-renderer');
 const createRollbackTask = require('./rollback');
 const createDeployTask = require('./deploy-one');
 const logger = require('../../utils/logger');
+const { wireHooks } = require('./utils');
 
 const colors = [
     'green',
@@ -49,18 +50,34 @@ const showSummary = (paths, ctx) => {
     logUpdate(output);
 };
 
-module.exports = (paths, flags, config, logStream) => {
+module.exports = (paths, flags, config, logStream, hooks) => {
+    const rootContext = {};
+    const hookParams = {
+        flags,
+        config,
+        logStream
+    };
+
     const tasks = new Listr(
-        paths.map((path, index) => ({
-            title: path,
-            task: createDeployTask({
-                path,
-                flags,
-                config,
-                logStream,
-                color: getColor(index)
-            })
-        })),
+        wireHooks(
+            hookParams,
+            rootContext,
+            paths.map((path, index) => ({
+                title: path,
+                task: createDeployTask(
+                    {
+                        path,
+                        flags,
+                        config,
+                        logStream,
+                        color: getColor(index)
+                    },
+                    hooks
+                )
+            })),
+            hooks.beforeDeployAll,
+            hooks.afterDeployAll
+        ),
         {
             concurrent: !config.runInBand,
             exitOnError: Boolean(config.exitOnFailure),
@@ -87,14 +104,23 @@ module.exports = (paths, flags, config, logStream) => {
             ) {
                 logger.log('Rolling back');
                 return new Listr(
-                    deployedPaths.map((path, index) => ({
-                        title: `rolling back ${path}`,
-                        task: createRollbackTask({
-                            path,
-                            logStream,
-                            color: getColor(index)
-                        })
-                    })),
+                    wireHooks(
+                        hookParams,
+                        rootContext,
+                        deployedPaths.map((path, index) => ({
+                            title: `rolling back ${path}`,
+                            task: createRollbackTask(
+                                {
+                                    path,
+                                    logStream,
+                                    color: getColor(index)
+                                },
+                                hooks
+                            )
+                        })),
+                        hooks.beforeRollbackAll,
+                        hooks.afterRollbackAll
+                    ),
                     {
                         concurrent: !config.runInBand,
                         exitOnError: false,

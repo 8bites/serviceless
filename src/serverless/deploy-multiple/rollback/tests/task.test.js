@@ -1,6 +1,6 @@
 'use strict';
 
-const mockRollback = jest.fn();
+const mockRollback = jest.fn(() => Promise.resolve());
 const mockCreateStatusStream = jest.fn();
 
 jest.mock('../rollback', () => mockRollback);
@@ -17,15 +17,18 @@ describe('createRollbackTask', () => {
             color: 'blue'
         };
 
-        const task = createRollbackTask(params);
+        const task = createRollbackTask(params, {});
         const mockCtx = {};
         const mockTask = {};
 
-        task(mockCtx, mockTask);
-        expect(mockRollback).toBeCalledWith({
-            path: params.path,
-            logStream: params.logStream
-        });
+        return expect(task(mockCtx, mockTask))
+            .resolves.toEqual({})
+            .then(() => {
+                expect(mockRollback).toBeCalledWith({
+                    path: params.path,
+                    logStream: params.logStream
+                });
+            });
     });
 
     it('should create task with verbose flag', () => {
@@ -37,20 +40,23 @@ describe('createRollbackTask', () => {
         };
 
         mockCreateStatusStream.mockReturnValueOnce('stdout');
-        const task = createRollbackTask(params);
+        const task = createRollbackTask(params, {});
         const mockCtx = {};
         const mockTask = {};
 
-        task(mockCtx, mockTask);
-        expect(mockRollback).toBeCalledWith({
-            path: params.path,
-            logStream: params.logStream,
-            stdout: 'stdout'
-        });
-        expect(mockCreateStatusStream).toBeCalledWith(
-            params.path,
-            params.color,
-            mockTask
-        );
+        return expect(task(mockCtx, mockTask))
+            .resolves.toEqual({})
+            .then(() => {
+                expect(mockRollback).toBeCalledWith({
+                    path: params.path,
+                    logStream: params.logStream,
+                    stdout: 'stdout'
+                });
+                expect(mockCreateStatusStream).toBeCalledWith(
+                    params.path,
+                    params.color,
+                    mockTask
+                );
+            });
     });
 });
