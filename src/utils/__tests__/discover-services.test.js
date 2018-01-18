@@ -67,4 +67,14 @@ describe('discover-services', () => {
                 });
             });
     });
+
+    it('should catch error', () => {
+        const error = new Error();
+        const mockGlob = jest.fn((path, callback) => callback(error));
+        jest.resetModules();
+        jest.mock('glob', () => mockGlob);
+        const mockedDiscoverServices = require('../discover-services');
+
+        return expect(mockedDiscoverServices(tmpPath)).rejects.toBe(error);
+    });
 });

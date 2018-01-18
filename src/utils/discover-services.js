@@ -1,35 +1,32 @@
 'use strict';
 
 const Path = require('path');
-const fs = require('fs-extra');
-const { containsServerlessConfig } = require('../common/utils');
+const glob = require('glob');
 
-const discover = (basePath, hash) => {
-    return fs.readdir(basePath).then(files => {
-        return Promise.all(
-            files.map(file => {
-                const filePath = Path.join(basePath, file);
+const serverlessConfigRegExp = /\/serverless\.(yaml|yml|json|js)$/;
 
-                return fs.lstat(filePath).then(stats => {
-                    if (stats.isFile() && containsServerlessConfig(file)) {
-                        hash[basePath] = Path.join(basePath, file);
-                    }
+const discover = basePath => {
+    return new Promise((resolve, reject) => {
+        glob(
+            Path.join(basePath, '**/serverless.@(yaml|yml|json|js)'),
+            (err, files) => {
+                const hash = {};
 
-                    if (stats.isDirectory()) {
-                        return discover(filePath, hash);
-                    } else {
-                        return Promise.resolve();
-                    }
+                if (err) {
+                    reject(err);
+                }
+                files.forEach(file => {
+                    hash[file.replace(serverlessConfigRegExp, '')] = file;
                 });
-            })
+
+                resolve(hash);
+            }
         );
     });
 };
 
 module.exports = basePath => {
-    const hash = {};
-
-    return discover(basePath, hash).then(() => {
+    return discover(basePath).then(hash => {
         Object.keys(hash).forEach(key => {
             const hashKey = key.replace(basePath, '').replace(/^\//, '') || '.';
             hash[hashKey] = hash[key];
