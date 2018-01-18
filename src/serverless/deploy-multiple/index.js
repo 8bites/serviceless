@@ -70,13 +70,21 @@ module.exports = (paths, flags, config, logStream) => {
     ).run();
 
     return tasks
+        .then(ctx => {
+            logger.log('Deployment completed successfuly');
+            showSummary(paths, ctx);
+        })
         .catch(err => {
             logger.log('Deployment failed');
             showSummary(paths, err.context);
 
             const { deployedPaths } = err.context;
 
-            if (config.rollbackOnFailure && deployedPaths.length > 0) {
+            if (
+                config.rollbackOnFailure &&
+                deployedPaths &&
+                deployedPaths.length > 0
+            ) {
                 logger.log('Rolling back');
                 return new Listr(
                     deployedPaths.map((path, index) => ({
@@ -101,9 +109,5 @@ module.exports = (paths, flags, config, logStream) => {
             }
 
             return Promise.reject(err);
-        })
-        .then(ctx => {
-            logger.log('Deployment completed successfuly');
-            showSummary(paths, ctx);
         });
 };

@@ -9,6 +9,15 @@ jest.mock('../rollback', () => mockRollback);
 const deployMultiple = require('../index');
 const { Writable } = require('stream');
 
+const updateContext = (ctx, path, isDeployed, stdout) => {
+    if (isDeployed) {
+        ctx.deployedPaths = ctx.deployedPaths
+            ? ctx.deployedPaths.concat([path])
+            : [path];
+    }
+    ctx[path] = { info: stdout, isSkipped: !isDeployed };
+};
+
 describe('serverless deploy multiple', () => {
     beforeEach(() => {
         mockDeployOne.mockClear();
@@ -25,9 +34,10 @@ describe('serverless deploy multiple', () => {
         });
 
         it('should deploy list of services', () => {
-            mockDeployOne.mockImplementation(({ path }) => () =>
-                Promise.resolve({ stdout: path })
-            );
+            mockDeployOne.mockImplementation(({ path }) => ctx => {
+                updateContext(ctx, path, true, path);
+                return Promise.resolve({ stdout: path });
+            });
 
             const services = ['foo', 'bar', 'baz'];
             expect.assertions(services.length);
@@ -46,9 +56,11 @@ describe('serverless deploy multiple', () => {
         });
 
         it('with verbose flag', () => {
-            mockDeployOne.mockImplementation(({ path }) => () =>
-                Promise.resolve({ stdout: `Serverless: ${path}` })
-            );
+            mockDeployOne.mockImplementation(({ path }) => ctx => {
+                const stdout = `Serverless: ${path}`;
+                updateContext(ctx, path, true, stdout);
+                return Promise.resolve({ stdout });
+            });
 
             const services = ['foo', 'bar', 'baz'];
             const config = { verbose: true };
@@ -72,7 +84,10 @@ describe('serverless deploy multiple', () => {
             expect.assertions(1);
 
             const error = new Error('fail');
-            mockDeployOne.mockImplementation(() => () => Promise.reject(error));
+            mockDeployOne.mockImplementation(({ path }) => ctx => {
+                ctx[path] = { isFailed: true };
+                return Promise.reject(error);
+            });
 
             return deployMultiple(['foo', 'bar', 'baz'], '', {}).catch(err => {
                 expect(err).toBeInstanceOf(Error);
@@ -90,9 +105,10 @@ describe('serverless deploy multiple', () => {
         });
 
         it('should deploy list of services', () => {
-            mockDeployOne.mockImplementation(({ path }) => () =>
-                Promise.resolve({ stdout: path })
-            );
+            mockDeployOne.mockImplementation(({ path }) => ctx => {
+                updateContext(ctx, path, true, path);
+                return Promise.resolve({ stdout: path });
+            });
 
             const services = ['foo', 'bar', 'baz'];
             const config = { runInBand: true };
@@ -112,9 +128,11 @@ describe('serverless deploy multiple', () => {
         });
 
         it('with verbose flag', () => {
-            mockDeployOne.mockImplementation(({ path }) => () =>
-                Promise.resolve({ stdout: `Serverless: ${path}` })
-            );
+            mockDeployOne.mockImplementation(({ path }) => ctx => {
+                const stdout = `Serverless: ${path}`;
+                updateContext(ctx, path, true, stdout);
+                return Promise.resolve({ stdout });
+            });
 
             const services = ['foo', 'bar', 'baz'];
             const config = { runInBand: true, verbose: true };
@@ -139,11 +157,14 @@ describe('serverless deploy multiple', () => {
 
             const error = new Error('fail');
             const config = { runInBand: true, exitOnFailure: true };
-            mockDeployOne.mockImplementation(({ path }) => () => {
+            mockDeployOne.mockImplementation(({ path }) => ctx => {
                 if (path === 'bar') {
+                    ctx[path] = { isFailed: true };
                     return Promise.reject(error);
                 }
-                return Promise.resolve(`Serverless: ${path}`);
+                const stdout = `Serverless: ${path}`;
+                updateContext(ctx, path, true, stdout);
+                return Promise.resolve({ stdout });
             });
 
             return deployMultiple(['foo', 'bar', 'baz'], '', config).catch(
@@ -159,14 +180,18 @@ describe('serverless deploy multiple', () => {
             const error = new Error('failed');
             mockDeployOne.mockImplementation(({ path }) => ctx => {
                 if (path === 'bar') {
+                    ctx[path] = { isFailed: true };
                     return Promise.reject(error);
                 } else if (path === 'foo') {
+                    const stdout =
+                        'Serverless: Service files not changed. Skipping deployment...';
+                    updateContext(ctx, path, false, stdout);
                     return Promise.resolve({
-                        stdout:
-                            'Serverless: Service files not changed. Skipping deployment...'
+                        stdout
                     });
                 }
                 ctx.deployedPaths = [path];
+                ctx[path] = { info: 'Serverless: Stack update finished...' };
                 return Promise.resolve({
                     stdout: 'Serverless: Stack update finished...'
                 });
@@ -207,14 +232,18 @@ describe('serverless deploy multiple', () => {
             const rollbackError = new Error('rollback failed');
             mockDeployOne.mockImplementation(({ path }) => ctx => {
                 if (path === 'bar') {
+                    ctx[path] = { isFailed: true };
                     return Promise.reject(error);
                 } else if (path === 'foo') {
+                    const stdout =
+                        'Serverless: Service files not changed. Skipping deployment...';
+                    updateContext(ctx, path, false, stdout);
                     return Promise.resolve({
-                        stdout:
-                            'Serverless: Service files not changed. Skipping deployment...'
+                        stdout
                     });
                 }
                 ctx.deployedPaths = [path];
+                ctx[path] = { info: 'Serverless: Stack update finished...' };
                 return Promise.resolve({
                     stdout: 'Serverless: Stack update finished...'
                 });
@@ -260,12 +289,14 @@ describe('serverless deploy multiple', () => {
             const error = new Error('failed');
             mockDeployOne.mockImplementation(({ path }) => ctx => {
                 if (path === 'bar') {
+                    ctx[path] = { isFailed: true };
                     return Promise.reject(error);
                 }
-                ctx.deployedPaths = [];
+                const stdout =
+                    'Serverless: Service files not changed. Skipping deployment...';
+                updateContext(ctx, path, false, stdout);
                 return Promise.resolve({
-                    stdout:
-                        'Serverless: Service files not changed. Skipping deployment...'
+                    stdout
                 });
             });
             mockRollback.mockImplementation(() => Promise.resolve());
