@@ -59,4 +59,10 @@ describe('createRollbackTask', () => {
                 );
             });
     });
+
+    it('should catch error', () => {
+        const task = createRollbackTask();
+
+        return expect(task()).rejects.toBeInstanceOf(Error);
+    });
 });

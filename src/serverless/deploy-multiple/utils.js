@@ -16,7 +16,7 @@ const wireHooks = (params, globalContext, tasks, before, after) => {
         if (!Array.isArray(after)) {
             after = [after];
         }
-        tasks = [...tasks, after.map(createHook)];
+        tasks = [...tasks, ...after.map(createHook)];
     }
 
     return tasks;

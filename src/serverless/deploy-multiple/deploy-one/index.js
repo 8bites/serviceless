@@ -2,7 +2,7 @@
 
 const Listr = require('listr');
 const ListrVerboseRenderer = require('listr-verbose-renderer');
-const task = require('./task');
+const createDeployTask = require('./task');
 const { wireHooks } = require('../utils');
 
 /*
@@ -19,8 +19,8 @@ module.exports = (params, hooks) => (globalCtx, task) => {
 
         const tasks = [
             {
-                title: `sls deploy ${flags}`,
-                task: task(params)
+                title: `[${params.path}] sls deploy ${params.flags}`,
+                task: createDeployTask(globalCtx, params)
             }
         ];
 
@@ -34,7 +34,8 @@ module.exports = (params, hooks) => (globalCtx, task) => {
 
         return new Listr(tasks, {
             renderer: config.verbose && ListrVerboseRenderer,
-            exitOnError: true
+            exitOnError: true,
+            collapse: false
         }).run();
     } catch (err) {
         return Promise.reject(err);
