@@ -17,26 +17,28 @@ module.exports = (params, hooks) => (globalCtx, task) => {
     try {
         const { config } = params;
 
-        const tasks = [
-            {
-                title: `[${params.path}] sls deploy ${params.flags}`,
-                task: createDeployTask(globalCtx, params)
-            }
-        ];
-
-        wireHooks(
+        const tasks = wireHooks(
             params,
             globalCtx,
-            tasks,
+            [
+                {
+                    title: `[${params.path}] sls deploy ${params.flags}`,
+                    task: createDeployTask(globalCtx, params)
+                }
+            ],
             hooks.beforeDeploy,
             hooks.afterDeploy
         );
 
-        return new Listr(tasks, {
-            renderer: config.verbose && ListrVerboseRenderer,
-            exitOnError: true,
-            collapse: false
-        }).run();
+        if (tasks.length > 1) {
+            return new Listr(tasks, {
+                renderer: config.verbose && ListrVerboseRenderer,
+                exitOnError: true,
+                collapse: false
+            }).run();
+        }
+
+        return tasks[0].task({}, task);
     } catch (err) {
         return Promise.reject(err);
     }

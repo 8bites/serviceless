@@ -1,6 +1,6 @@
 'use strict';
 
-const mockRollback = jest.fn(() => Promise.resolve());
+const mockRollback = jest.fn(() => Promise.resolve({}));
 const mockCreateStatusStream = jest.fn();
 
 jest.mock('../rollback', () => mockRollback);
@@ -9,60 +9,106 @@ jest.mock('../../status-stream', () => mockCreateStatusStream);
 const createRollbackTask = require('../index');
 
 describe('createRollbackTask', () => {
-    it('should create task', () => {
-        const params = {
-            path: 'path',
-            logStream: {},
-            config: {},
-            color: 'blue'
-        };
+    describe('without hooks', () => {
+        it('should create task', () => {
+            const params = {
+                path: 'path',
+                logStream: {},
+                config: {},
+                color: 'blue'
+            };
 
-        const task = createRollbackTask(params, {});
-        const mockCtx = {};
-        const mockTask = {};
+            const task = createRollbackTask(params, {});
+            const mockCtx = {};
+            const mockTask = {};
 
-        return expect(task(mockCtx, mockTask))
-            .resolves.toEqual({})
-            .then(() => {
-                expect(mockRollback).toBeCalledWith({
-                    path: params.path,
-                    logStream: params.logStream
+            return expect(task(mockCtx, mockTask))
+                .resolves.toEqual({})
+                .then(() => {
+                    expect(mockRollback).toBeCalledWith({
+                        path: params.path,
+                        logStream: params.logStream
+                    });
                 });
-            });
+        });
+
+        it('should catch error', () => {
+            const task = createRollbackTask();
+
+            return expect(task()).rejects.toBeInstanceOf(Error);
+        });
     });
 
-    it('should create task with verbose flag', () => {
-        const params = {
-            path: 'path',
-            logStream: {},
-            config: { verbose: true },
-            color: 'blue'
-        };
+    describe('with hooks', () => {
+        it('should create task', () => {
+            const params = {
+                path: 'path',
+                logStream: {},
+                config: {},
+                color: 'blue'
+            };
 
-        mockCreateStatusStream.mockReturnValueOnce('stdout');
-        const task = createRollbackTask(params, {});
-        const mockCtx = {};
-        const mockTask = {};
+            const hook = {
+                title: 'before hook',
+                task: jest.fn(() => Promise.resolve({}))
+            };
+            const task = createRollbackTask(params, { beforeRollback: hook });
+            const mockCtx = {};
+            const mockTask = {};
 
-        return expect(task(mockCtx, mockTask))
-            .resolves.toEqual({})
-            .then(() => {
-                expect(mockRollback).toBeCalledWith({
-                    path: params.path,
-                    logStream: params.logStream,
-                    stdout: 'stdout'
+            return expect(task(mockCtx, mockTask))
+                .resolves.toEqual({})
+                .then(() => {
+                    expect(hook.task).toBeCalledWith(
+                        {},
+                        expect.any(Object),
+                        params,
+                        mockCtx
+                    );
+                    expect(mockRollback).toBeCalledWith({
+                        path: params.path,
+                        logStream: params.logStream
+                    });
                 });
-                expect(mockCreateStatusStream).toBeCalledWith(
-                    params.path,
-                    params.color,
-                    mockTask
-                );
-            });
-    });
+        });
 
-    it('should catch error', () => {
-        const task = createRollbackTask();
+        it('should create task with verbose flag', () => {
+            const params = {
+                path: 'path',
+                logStream: {},
+                config: { verbose: true },
+                color: 'blue'
+            };
 
-        return expect(task()).rejects.toBeInstanceOf(Error);
+            mockCreateStatusStream.mockReturnValueOnce('stdout');
+            const hook = {
+                title: 'before hook',
+                task: jest.fn(() => Promise.resolve({}))
+            };
+            const task = createRollbackTask(params, { beforeRollback: hook });
+            const mockCtx = {};
+            const mockTask = {};
+
+            return expect(task(mockCtx, mockTask))
+                .resolves.toEqual({})
+                .then(() => {
+                    expect(hook.task).toBeCalledWith(
+                        {},
+                        expect.any(Object),
+                        params,
+                        mockCtx
+                    );
+                    expect(mockRollback).toBeCalledWith({
+                        path: params.path,
+                        logStream: params.logStream,
+                        stdout: 'stdout'
+                    });
+                    expect(mockCreateStatusStream).toBeCalledWith(
+                        params.path,
+                        params.color,
+                        expect.any(Object)
+                    );
+                });
+        });
     });
 });

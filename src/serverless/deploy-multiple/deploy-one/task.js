@@ -11,7 +11,7 @@ module.exports = (globalCtx, { path, flags, config, logStream, color }) => (
         path,
         flags,
         logStream,
-        stdout: config.verbose && createStatusStream(path, color, task)
+        stdout: createStatusStream(path, color, task)
     })
         .catch(err => {
             const deployContext = {

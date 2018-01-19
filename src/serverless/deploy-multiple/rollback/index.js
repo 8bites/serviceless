@@ -10,32 +10,32 @@ module.exports = (params, hooks) => (globalCtx, task) => {
     try {
         const { path, logStream, config, color } = params;
 
-        const tasks = [
-            {
-                title: 'sls rollback',
-                task: () =>
-                    rollback({
-                        path,
-                        logStream,
-                        stdout:
-                            config.verbose &&
-                            createStatusStream(path, color, task)
-                    })
-            }
-        ];
-
-        wireHooks(
+        const tasks = wireHooks(
             params,
             globalCtx,
-            tasks,
+            [
+                {
+                    title: 'sls rollback',
+                    task: (ctx, task) =>
+                        rollback({
+                            path,
+                            logStream,
+                            stdout: createStatusStream(path, color, task)
+                        })
+                }
+            ],
             hooks.beforeRollback,
             hooks.afterRollback
         );
 
-        return new Listr(tasks, {
-            renderer: config.verbose && ListrVerboseRenderer,
-            exitOnError: true
-        }).run();
+        if (tasks.length > 1) {
+            return new Listr(tasks, {
+                renderer: config.verbose && ListrVerboseRenderer,
+                exitOnError: true
+            }).run();
+        }
+
+        return tasks[0].task({}, task);
     } catch (err) {
         return Promise.reject(err);
     }
