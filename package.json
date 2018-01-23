@@ -1,6 +1,6 @@
 {
     "name": "serviceless",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Cli tool on top of Serverless framework",
     "main": "index.js",
     "bin": {
@@ -16,7 +16,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/8bites/serviceless.git"
+        "url": "git+https://github.com/threadheap/serviceless.git"
     },
     "keywords": [
         "serverless",
@@ -32,9 +32,9 @@
     "author": "Pavel Vlasov <freakycue@gmail.com>",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/8bites/serviceless/issues"
+        "url": "https://github.com/threadheap/serviceless/issues"
     },
-    "homepage": "https://github.com/8bites/serviceless#readme",
+    "homepage": "https://github.com/threadheap/serviceless#readme",
     "devDependencies": {
         "codecov": "^3.0.0",
         "eslint": "^4.15.0",

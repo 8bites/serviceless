@@ -4,9 +4,10 @@ const Path = require('path');
 const glob = require('glob');
 
 const serverlessConfigRegExp = /\/serverless\.(yaml|yml|json|js)$/;
+const ignorePaths = ['node_modules'];
 
-const discover = basePath => {
-    return new Promise((resolve, reject) => {
+const discover = basePath =>
+    new Promise((resolve, reject) => {
         glob(
             Path.join(basePath, '**/serverless.@(yaml|yml|json|js)'),
             (err, files) => {
@@ -16,6 +17,9 @@ const discover = basePath => {
                     reject(err);
                 }
                 files.forEach(file => {
+                    if (ignorePaths.some(path => file.indexOf(path) > -1)) {
+                        return;
+                    }
                     hash[file.replace(serverlessConfigRegExp, '')] = file;
                 });
 
@@ -23,10 +27,9 @@ const discover = basePath => {
             }
         );
     });
-};
 
-module.exports = basePath => {
-    return discover(basePath).then(hash => {
+module.exports = basePath =>
+    discover(basePath).then(hash => {
         Object.keys(hash).forEach(key => {
             const hashKey = key.replace(basePath, '').replace(/^\//, '') || '.';
             hash[hashKey] = hash[key];
@@ -35,4 +38,3 @@ module.exports = basePath => {
 
         return hash;
     });
-};
